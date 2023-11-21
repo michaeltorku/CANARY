@@ -9,7 +9,6 @@ class Switch;
 
 class Host {
 public:
-    // Host();
     Host(int id, int data, std::vector<Path>& paths);
     void receive(int reduce_id, int data, std::map<int, Host> &host_map, std::map<int, Switch> &switch_map);
     std::map<int, int> all_reduce_map;

@@ -11,10 +11,9 @@
 std::vector<std::vector<int>> ongoing_allreduces;
 std::map<int, Host> host_map;
 std::map<int, Switch> switch_map;
-//allreduces are run in batches of 3
+
 std::vector<int> select_hosts_for_allreduce(std::set<int> host_ids){
-    if (host_ids.size() < 3){
-        std::cout << "Not enough hosts for allreduce" << std::endl;
+    if (host_ids.size() < 3){ //WLOG all reduces are run in batches of 3
         return std::vector<int>{};
     }
     std::cout << "Selecting hosts for allreduce" << std::endl;
@@ -51,7 +50,6 @@ void network_setup(int number_of_hosts, int number_of_switches){
         // Splitting the string by ':'
         std::getline(iss, lower_node, ':');
         std::getline(iss, upper_node);
-        std::cout << lower_node << " " << upper_node << std::endl;
 
         // Create a Path object and add it to the paths vector
         if (all_paths.contains(lower_node)){
@@ -78,18 +76,17 @@ void network_setup(int number_of_hosts, int number_of_switches){
 }
 
 int main(){
-    std::vector<int> host_ids = {0, 1, 2, 3, 4, 5, 6, 7}; // 8, 9, 10
+    std::vector<int> host_ids = {0, 1, 2, 3, 4, 5, 6, 7};
     
-    // void network_setup(8, 9);
     network_setup(4, 5);
     int num_hosts = 4;
-    std::vector<int> allreduce_hosts = {0, 1, 2, 3}; // select_hosts_for_allreduce(host_ids);
+    std::vector<int> allreduce_hosts = {0, 1, 2, 3}; // select hosts for allreduce
     for (int host: allreduce_hosts){
         host_map.at(host).all_reduce_map[0] = 2;
         host_map.at(host).send(0, host_map.at(host).all_reduce_map[0], host_map, switch_map);
     }
-    std::cout << "finally: " << switch_map[0].all_reduce_map[0] << std::endl;
-    // std::vector result = initiate_allreduce(allreduce_hosts);
+    std::cout << "Root Switch Result: " << switch_map[0].all_reduce_map[0] << std::endl;
+    // WLOG Root Switch is Switch 0
 
     return 0;    
 }

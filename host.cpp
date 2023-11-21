@@ -5,11 +5,6 @@
 #include "switch.hpp"
 #include "loadBalance.hpp"
 
-
-
-// Host::Host(){
-// }
-
 Host::Host(int id, int data, std::vector<Path>& paths){
     this->id = id;
     this->data = data;
@@ -28,8 +23,7 @@ void Host::addPath(Path &path) {
 void Host::send(int reduce_id, int data, std::map<int, Host> &host_map, std::map<int, Switch> &switch_map){
     int p_idx = load_balancer::balance(this->paths);
     Path selected_path = paths[p_idx];
-    // selected_path.upper_node
-    std::cout << "going from " << selected_path.lower_node << " to " << selected_path.upper_node << std::endl;
+
     double delay = selected_path.utilization;
     int target_node_id = selected_path.upper_node[1] - '0';
     if (selected_path.upper_node[0] == 'S'){
