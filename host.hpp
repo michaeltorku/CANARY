@@ -2,7 +2,7 @@
 #include <iostream>
 #include "path.hpp"
 #include <map>
-
+#include <thread>
 #include <vector>
 
 class Switch;
@@ -15,6 +15,7 @@ public:
     void send(int reduce_id, int data, std::map<int, Host> &host_map, std::map<int, Switch> &switch_map);
     std::vector<Path> paths;
     void addPath(Path & path);
+    std::vector<std::thread> executions;
 private:
     int id;
     int data;

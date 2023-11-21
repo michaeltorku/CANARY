@@ -93,14 +93,28 @@ int main(){
         executions.emplace_back(threadSend, std::ref(host_map.at(host)), std::ref(host_map), std::ref(switch_map));
 
     }
+    
+    // WLOG Root Switch is Switch 0
     for (auto& th : executions) {
     if (th.joinable()) {
         th.join();
     }
     }
+    for (auto& item : switch_map) {
+        for (auto& th : item.second.executions) {
+            if (th.joinable()) {
+                th.join();
+            }
+        }
+    }
+    for (auto& item : host_map) {
+        for (auto& th : item.second.executions) {
+            if (th.joinable()) {
+                th.join();
+            }
+        }
+    }
+    std::cout << "All Reduce is Complete" << std::endl;
     std::cout << "Root Switch Result: " << switch_map[0].all_reduce_map[0] << std::endl;
-    // WLOG Root Switch is Switch 0
-    
-
     return 0;    
 }
