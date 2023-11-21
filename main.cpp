@@ -2,15 +2,20 @@
 #include <set>
 #include <random>
 #include <vector>
+#include <map>
+#include <sstream>
 #include "host.hpp"
+#include "switch.hpp"
+
 
 std::vector<std::vector<int>> ongoing_allreduces;
-
+std::map<int, Host> host_map;
+std::map<int, Switch> switch_map;
 //allreduces are run in batches of 3
 std::vector<int> select_hosts_for_allreduce(std::set<int> host_ids){
     if (host_ids.size() < 3){
         std::cout << "Not enough hosts for allreduce" << std::endl;
-        return;
+        return std::vector<int>{};
     }
     std::cout << "Selecting hosts for allreduce" << std::endl;
     std::random_device rd;
@@ -30,17 +35,58 @@ std::vector<int> select_hosts_for_allreduce(std::set<int> host_ids){
 
 std::vector<int> initiate_allreduce(std::vector<int> allreduce_hosts){
     std::cout << "Initiating allreduce" << std::endl;
-    //FIX Set up host and switch network here
-    // for (int i = 0; i<allreduce_hosts.size(); i++){
-    //     Host(i, 2, std::vector<Path>{S()});
-    //     // FIX SET UP PATHS
-    // }
+    return std::vector<int>{1,2,3};
+}
+
+void network_setup(int number_of_hosts, int number_of_switches){
+    std::map<std::string, std::vector<Path>> all_paths;
+    std::vector<std::string> pairings = {"H0:S3", "H1:S3", "H2:S4", "H3:S4",
+    "S3:S1","S3:S2","S4:S1","S4:S2","S1:S0","S2:S0",
+    };
+    
+    for (std::string & pair: pairings){
+        std::istringstream iss(pair);
+        std::string lower_node, upper_node;
+        
+        // Splitting the string by ':'
+        std::getline(iss, lower_node, ':');
+        std::getline(iss, upper_node);
+
+        // Create a Path object and add it to the paths vector
+        if (all_paths.contains(lower_node)){
+            std::vector<Path> & path_list = all_paths[lower_node];
+            path_list.push_back(Path(lower_node, upper_node));
+        }else{
+            all_paths[lower_node] = {Path(lower_node, upper_node)};
+        }
+        
+    }
+    
+
+    for (int i=0; i<number_of_hosts; i++){
+        std::string host_rep = "H"+std::to_string(i);
+        std::vector<Path> const_arg = all_paths.contains(host_rep)? all_paths[host_rep]:std::vector<Path>{};
+        host_map[i] = Host(i, 2, const_arg);
+    }
+    for (int i=0; i<number_of_switches; i++){
+        std::string switch_rep = "S"+std::to_string(i);
+        std::vector<Path> const_arg = all_paths.contains(switch_rep)? all_paths[switch_rep]:std::vector<Path>{};
+        switch_map[i] = Switch(i, const_arg);
+    }
 
 }
 
 int main(){
-    std::set<int> host_ids = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-    std::vector<int> allreduce_hosts = select_hosts_for_allreduce(host_ids);
+    std::vector<int> host_ids = {0, 1, 2, 3, 4, 5, 6, 7}; // 8, 9, 10
+    
+    // void network_setup(8, 9);
+    network_setup(4, 5);
+    int num_hosts = 4;
+    std::vector<int> allreduce_hosts = {0, 1, 2, 3}; // select_hosts_for_allreduce(host_ids);
+    for (int host: allreduce_hosts){
+        host_map[host].send(0, host_map, switch_map);
+    }
+    // std::vector result = initiate_allreduce(allreduce_hosts);
 
     return 0;    
 }

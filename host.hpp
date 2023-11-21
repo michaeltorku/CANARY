@@ -1,17 +1,21 @@
 #pragma once
 #include <iostream>
-#include "switch.hpp"
 #include "path.hpp"
-#include "node.hpp"
+#include <map>
 
+#include <vector>
 
-class Host: public Node{
+class Switch;
+
+class Host {
 public:
-    Host(int id, int data, int all_reduce_id, std::vector<Path> paths);
-    // void Receive(const Switch& other, int data); //change to packet
-    void send(); 
-    // void request();
-
+    Host();
+    Host(int id, int data, std::vector<Path> paths);
+    void receive(int reduce_id, int data);
+    std::map<int, int> all_reduce_map;
+    void send(int reduce_id, std::map<int, Host> &host_map, std::map<int, Switch> &switch_map);
+    std::vector<Path> paths;
+    void addPath(Path path);
 private:
     int id;
     int data;
