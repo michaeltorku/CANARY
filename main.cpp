@@ -1,4 +1,5 @@
 #include <iostream>
+#include <thread>
 #include <set>
 #include <random>
 #include <vector>
@@ -8,7 +9,9 @@
 #include "switch.hpp"
 
 
+
 std::vector<std::vector<int>> ongoing_allreduces;
+std::vector<std::thread> executions;
 std::map<int, Host> host_map;
 std::map<int, Switch> switch_map;
 
@@ -75,6 +78,10 @@ void network_setup(int number_of_hosts, int number_of_switches){
 
 }
 
+void threadSend(Host& host, std::map<int, Host>& host_map, std::map<int, Switch>& switch_map) {
+    host.send(0, host.all_reduce_map[0], host_map, switch_map);
+}
+
 int main(){
     std::vector<int> host_ids = {0, 1, 2, 3, 4, 5, 6, 7};
     
@@ -83,10 +90,17 @@ int main(){
     std::vector<int> allreduce_hosts = {0, 1, 2, 3}; // select hosts for allreduce
     for (int host: allreduce_hosts){
         host_map.at(host).all_reduce_map[0] = 2;
-        host_map.at(host).send(0, host_map.at(host).all_reduce_map[0], host_map, switch_map);
+        executions.emplace_back(threadSend, std::ref(host_map.at(host)), std::ref(host_map), std::ref(switch_map));
+
+    }
+    for (auto& th : executions) {
+    if (th.joinable()) {
+        th.join();
+    }
     }
     std::cout << "Root Switch Result: " << switch_map[0].all_reduce_map[0] << std::endl;
     // WLOG Root Switch is Switch 0
+    
 
     return 0;    
 }
