@@ -5,10 +5,13 @@
 #include "switch.hpp"
 #include "loadBalance.hpp"
 
-Host::Host(int id, int data, std::vector<Path>& paths){
+Host::Host(int id, int data, std::vector<Path>& paths, int load_balance_algorithm){
     this->id = id;
     this->data = data;
     this->paths = paths;
+    this->load_balance_algorithm = load_balance_algorithm;
+    boost::uuids::random_generator generator;
+    this->IP = generator();
 }
 
 void Host::receive(int reduce_id, int data, std::map<int, Host> &host_map, std::map<int, Switch> &switch_map){
@@ -21,7 +24,7 @@ void Host::addPath(Path &path) {
 }
 
 void Host::send(int reduce_id, int data, std::map<int, Host> &host_map, std::map<int, Switch> &switch_map){
-    int p_idx = load_balancer::balance(this->paths);
+    int p_idx = load_balancer::balance(this->paths, load_balance_algorithm, "H"+ (((char) id) - '0'));
     Path &selected_path = paths[p_idx];
 
     double delay = selected_path.utilization;

@@ -8,7 +8,7 @@
 #include "host.hpp"
 #include "switch.hpp"
 
-
+const int algorithm = 0;
 std::vector<std::vector<int>> ongoing_allreduces;
 std::map<int, Host> host_map;
 std::map<int, Switch> switch_map;
@@ -68,12 +68,12 @@ void network_setup(int number_of_hosts, int number_of_switches){
     for (int i=0; i<number_of_hosts; i++){
         std::string host_rep = "H"+std::to_string(i);
         std::vector<Path> const_arg = all_paths.contains(host_rep)? all_paths[host_rep]:std::vector<Path>{};
-        host_map.emplace(i, Host(i, 2, const_arg));
+        host_map.emplace(i, Host(i, 2, const_arg, algorithm));
     }
     for (int i=0; i<number_of_switches; i++){
         std::string switch_rep = "S"+std::to_string(i);
         std::vector<Path> const_arg = all_paths.contains(switch_rep)? all_paths[switch_rep]:std::vector<Path>{};
-        switch_map.emplace(i, Switch(i, const_arg));
+        switch_map.emplace(i, Switch(i, const_arg, algorithm));
     }
 
 }

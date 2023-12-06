@@ -12,8 +12,8 @@ class Switch {
 
 public:
     Switch();
-    Switch(int id, std::vector<Path>& paths);
-    int id;
+    Switch(int id, std::vector<Path>& paths, int load_balance_algorithm);
+    int id; int load_balance_algorithm;
     std::vector<Path> paths;
     std::map<int, int> all_reduce_map;
     void receive(int reduce_id, int data, std::map<int, Host> &host_map, std::map<int, Switch> &switch_map); 

@@ -4,9 +4,10 @@
 #include <thread>
 
 
-Switch::Switch(int id, std::vector<Path> &paths){
+Switch::Switch(int id, std::vector<Path> &paths, int load_balance_algorithm){
     this->id = id;
     this->paths = paths;
+    this->load_balance_algorithm = load_balance_algorithm;
 }
 
 Switch::Switch(){
@@ -26,7 +27,7 @@ void Switch::send(int reduce_id, int data, std::map<int, Host> &host_map, std::m
         return;
     }
 
-    int p_idx = load_balancer::balance(this->paths);
+    int p_idx = load_balancer::balance(this->paths, load_balance_algorithm, "S"+ (((char) id) - '0'));
     Path & selected_path = paths[p_idx];
     double delay = selected_path.utilization;
     double tmp = selected_path.utilization;
