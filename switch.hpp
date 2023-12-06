@@ -12,7 +12,7 @@ class Switch {
 
 public:
     Switch();
-    Switch(int id, std::vector<Path> paths);
+    Switch(int id, std::vector<Path>& paths);
     int id;
     std::vector<Path> paths;
     std::map<int, int> all_reduce_map;

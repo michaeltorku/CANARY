@@ -4,6 +4,7 @@
 #include <vector>
 #include <map>
 #include <sstream>
+#include <chrono>
 #include "host.hpp"
 #include "switch.hpp"
 
@@ -40,7 +41,9 @@ std::vector<int> initiate_allreduce(std::vector<int> allreduce_hosts){
 void network_setup(int number_of_hosts, int number_of_switches){
     std::map<std::string, std::vector<Path>> all_paths;
     std::vector<std::string> pairings = {"H0:S3", "H1:S3", "H2:S4", "H3:S4",
-    "S3:S1","S3:S2","S4:S1","S4:S2","S1:S0","S2:S0",
+    "S3:S1",
+    // "S3:S2","S4:S1",
+    "S4:S2","S1:S0","S2:S0",
     };
     
     for (std::string & pair: pairings){
@@ -76,6 +79,9 @@ void network_setup(int number_of_hosts, int number_of_switches){
 }
 
 int main(){
+    // Start timing
+    auto start_time = std::chrono::high_resolution_clock::now();
+
     std::vector<int> host_ids = {0, 1, 2, 3, 4, 5, 6, 7};
     
     network_setup(4, 5);
@@ -88,5 +94,11 @@ int main(){
     std::cout << "Root Switch Result: " << switch_map[0].all_reduce_map[0] << std::endl;
     // WLOG Root Switch is Switch 0
 
+    // End timing
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto elapsed_time = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+
+    // Print profiling result
+    std::cout << "Elapsed time: " << elapsed_time.count() << " microseconds" << std::endl;
     return 0;    
 }
