@@ -95,14 +95,14 @@ int main(){
     std::random_device rd;  // get a random number from hardware
     std::mt19937 gen(rd()); // Seed the generator
     std::uniform_int_distribution<> distr(10, 1000);
-
+    std::cout << host_map.size() << " and: " << switch_map.size() << std::endl;
     for (int host: allreduce_hosts){
         // auto num = distr(gen);
         // expected += num;
         host_map.at(host).all_reduce_descriptor[0] = 2;
         executions.emplace_back(threadSend, std::ref(host_map.at(host)), std::ref(host_map), std::ref(switch_map), std::ref(host_map_mutex), std::ref(switch_map_mutex));
         // Host & hostt = host_map.at(host);
-        // hostt.send(0, hostt.all_reduce_descriptor[0], host_map, switch_map);
+        // hostt.send(0, hostt.all_reduce_descriptor[0], host_map, switch_map, host_map_mutex, switch_map_mutex);
 
     }
     
