@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include <sstream>
+#include <mutex>
 #include "host.hpp"
 #include "switch.hpp"
 
@@ -12,6 +13,8 @@
 
 std::vector<std::vector<int>> ongoing_allreduces;
 std::vector<std::thread> executions;
+std::mutex switch_map_mutex;
+std::mutex host_map_mutex;
 std::map<int, Host> host_map;
 std::map<int, Switch> switch_map;
 
@@ -65,18 +68,20 @@ void network_setup(int number_of_hosts, int number_of_switches){
     for (int i=0; i<number_of_hosts; i++){
         std::string host_rep = "H"+std::to_string(i);
         std::vector<Path> const_arg = all_paths.contains(host_rep)? all_paths[host_rep]:std::vector<Path>{};
-        host_map.emplace(i, Host(i, 2, const_arg)); // id, data, paths
+        // host_map.emplace(i, Host(i, 2, const_arg)); // id, data, paths
+        host_map.try_emplace(i, i, 2, const_arg);
     }
     for (int i=0; i<number_of_switches; i++){
         std::string switch_rep = "S"+std::to_string(i);
         std::vector<Path> const_arg = all_paths.contains(switch_rep)? all_paths[switch_rep]:std::vector<Path>{};
-        switch_map.emplace(i, Switch(i, const_arg)); // id, paths
+        // switch_map.emplace(i, Switch(i, const_arg)); // id, paths
+        switch_map.try_emplace(i, i, const_arg);
     }
 
 }
 
-void threadSend(Host& host, std::map<int, Host>& host_map, std::map<int, Switch>& switch_map) {
-    host.send(0, host.all_reduce_descriptor[0], host_map, switch_map);
+void threadSend(Host& host, std::map<int, Host>& host_map, std::map<int, Switch>& switch_map, std::mutex & host_map_mutex, std::mutex & switch_map_mutex) {
+    host.send(0, host.all_reduce_descriptor[0], host_map, switch_map, host_map_mutex, switch_map_mutex);
 }
 
 int main(){
@@ -85,31 +90,36 @@ int main(){
     network_setup(4, 5);
     int num_hosts = 4;
     std::vector<int> allreduce_hosts = {0, 1, 2, 3}; // TODO:select hosts for allreduce
+
+    int expected = 0;
+    std::random_device rd;  // get a random number from hardware
+    std::mt19937 gen(rd()); // Seed the generator
+    std::uniform_int_distribution<> distr(10, 1000);
+
     for (int host: allreduce_hosts){
+        // auto num = distr(gen);
+        // expected += num;
         host_map.at(host).all_reduce_descriptor[0] = 2;
-        executions.emplace_back(threadSend, std::ref(host_map.at(host)), std::ref(host_map), std::ref(switch_map));
+        executions.emplace_back(threadSend, std::ref(host_map.at(host)), std::ref(host_map), std::ref(switch_map), std::ref(host_map_mutex), std::ref(switch_map_mutex));
+        // Host & hostt = host_map.at(host);
+        // hostt.send(0, hostt.all_reduce_descriptor[0], host_map, switch_map);
 
     }
     
     // WLOG Root Switch is Switch 0
+    // for (auto& item : switch_map) {
+    //     for (auto& th : item.second.executions) {
+    //         if (th.joinable()) {
+    //             th.join();
+    //         }
+    //     }
+    // }
+    
+
     for (auto& th : executions) {
     if (th.joinable()) {
         th.join();
     }
-    }
-    for (auto& item : switch_map) {
-        for (auto& th : item.second.executions) {
-            if (th.joinable()) {
-                th.join();
-            }
-        }
-    }
-    for (auto& item : host_map) {
-        for (auto& th : item.second.executions) {
-            if (th.joinable()) {
-                th.join();
-            }
-        }
     }
     std::cout << "All Reduce is Complete" << std::endl;
     std::cout << "Root Switch Result: " << switch_map[0].all_reduce_descriptor[0] << std::endl;

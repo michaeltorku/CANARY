@@ -2,7 +2,7 @@
 
 
 
-int load_balancer::balance(std::vector<Path> paths){
+int load_balancer::balance(std::vector<Path>& paths){
     int min = std::numeric_limits<int>::min();
     int min_index = 0;
     for(int i = 0; i < paths.size(); i++){
