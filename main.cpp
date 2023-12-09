@@ -86,10 +86,10 @@ void send(Host& host, int reduce_id, int data){
     int target_node_id = selected_path.upper_node[1] - '0';
     if (selected_path.upper_node[0] == 'S'){
         Switch &target = switch_map.at(target_node_id);
-        receive(target, reduce_id, host.all_reduce_map[reduce_id]);
+        receive(target, reduce_id, host.all_reduce_map[reduce_id]); // send host initial data
     }else{
         Host &target = host_map.at(target_node_id);
-        receive(target, reduce_id, host.all_reduce_map[reduce_id]);
+        receive(target, reduce_id, host.all_reduce_map[reduce_id]); // send host initial data
     }
 }
 
@@ -107,10 +107,10 @@ void send(Switch& toggle, int reduce_id, int data){
     int target_node_id = selected_path.upper_node[1] - '0';
     if (selected_path.upper_node[0] == 'S'){
         Switch &target = switch_map.at(target_node_id);
-        receive(target, reduce_id, data);
+        receive(target, reduce_id, data); // switch only sends data received
     }else{
         Host &target = host_map.at(target_node_id);
-        receive(target, reduce_id, data);
+        receive(target, reduce_id, data); // switch only sends data received (should agg and send data on timeout)
     }
 }
 
@@ -130,13 +130,21 @@ int main(){
     
     int num_hosts = 4;
     std::vector<int> allreduce_hosts = {0, 1, 2, 3}; // select hosts for allreduce
-    
+
+    int expected = 0;
+    std::random_device rd;  // get a random number from hardware
+    std::mt19937 gen(rd()); // Seed the generator
+    std::uniform_int_distribution<> distr(100, 50000);
+
+
     for (int host: allreduce_hosts){
-        host_map.at(host).all_reduce_map[0] = 2;
-        send(host_map.at(host), 0, 2);
+        auto num = distr(gen);
+        expected += num;
+        host_map.at(host).all_reduce_map[0] = num;
+        send(host_map.at(host), 0, host_map.at(host).all_reduce_map[0]);
         // host_map.at(host).send(0, host_map.at(host).all_reduce_map[0],);
     }
-    std::cout << "Root Switch Result: " << switch_map[0].all_reduce_map[0] << std::endl;
+    std::cout << "Root Switch Result: " << switch_map[0].all_reduce_map[0] << " Expected: " << expected <<std::endl;
     // WLOG Root Switch is Switch 0
 
     // End timing + Print Profiling
