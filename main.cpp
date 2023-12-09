@@ -7,6 +7,7 @@
 #include <chrono>
 #include "host.hpp"
 #include "switch.hpp"
+#include "loadBalance.hpp"
 
 
 std::vector<std::vector<int>> ongoing_allreduces;
@@ -79,19 +80,44 @@ void network_setup(int number_of_hosts, int number_of_switches){
 }
 
 void send(Host& host, int reduce_id, int data){
-    ;
+    int p_idx = load_balancer::balance(host.paths);
+    Path &selected_path = host.paths[p_idx];
+
+    int target_node_id = selected_path.upper_node[1] - '0';
+    if (selected_path.upper_node[0] == 'S'){
+        Switch &target = switch_map.at(target_node_id);
+        receive(target, reduce_id, host.all_reduce_map[reduce_id]);
+    }else{
+        Host &target = host_map.at(target_node_id);
+        receive(target, reduce_id, host.all_reduce_map[reduce_id]);
+    }
 }
 
 void receive(Host& host, int reduce_id, int data){
-    ;
+    host.all_reduce_map[reduce_id] += data;
+    send(host, reduce_id, data);
 }
 
 void send(Switch& toggle, int reduce_id, int data){
-    ;
+    if (toggle.paths.size() == 0){
+        return;
+    }
+    int p_idx = load_balancer::balance(toggle.paths);
+    Path & selected_path = toggle.paths[p_idx];
+    int target_node_id = selected_path.upper_node[1] - '0';
+    if (selected_path.upper_node[0] == 'S'){
+        Switch &target = switch_map.at(target_node_id);
+        receive(target, reduce_id, data);
+    }else{
+        Host &target = host_map.at(target_node_id);
+        receive(target, reduce_id, data);
+    }
 }
 
 void receive(Switch& toggle, int reduce_id, int data){
-    ;
+    std::cout << toggle.id << " received " << data << std::endl;
+    toggle.all_reduce_map[reduce_id] += data;
+    send(toggle, reduce_id, data);
 }
 
 
@@ -107,16 +133,15 @@ int main(){
     
     for (int host: allreduce_hosts){
         host_map.at(host).all_reduce_map[0] = 2;
+        send(host_map.at(host), 0, 2);
         // host_map.at(host).send(0, host_map.at(host).all_reduce_map[0],);
     }
     std::cout << "Root Switch Result: " << switch_map[0].all_reduce_map[0] << std::endl;
     // WLOG Root Switch is Switch 0
 
-    // End timing
+    // End timing + Print Profiling
     auto end_time = std::chrono::high_resolution_clock::now();
     auto elapsed_time = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
-
-    // Print profiling result
     std::cout << "Elapsed time: " << elapsed_time.count() << " microseconds" << std::endl;
     return 0;    
 }
