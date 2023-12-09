@@ -59,6 +59,10 @@
         "thread": "cpp",
         "map": "cpp",
         "chrono": "cpp",
-        "memory": "cpp"
+        "memory": "cpp",
+        "future": "cpp",
+        "list": "cpp",
+        "shared_mutex": "cpp",
+        "source_location": "cpp"
     }
 }

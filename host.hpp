@@ -10,9 +10,9 @@ class Switch;
 class Host {
 public:
     Host(int id, int data, std::vector<Path>& paths);
-    void receive(int reduce_id, int data, std::map<int, Host> &host_map, std::map<int, Switch> &switch_map);
+    friend void receive(Host& host, int reduce_id, int data);
     std::map<int, int> all_reduce_map;
-    void send(int reduce_id, int data, std::map<int, Host> &host_map, std::map<int, Switch> &switch_map);
+    friend void send(Host& host, int reduce_id, int data);
     std::vector<Path> paths;
     void addPath(Path & path);
 private:

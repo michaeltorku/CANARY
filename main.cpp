@@ -42,7 +42,7 @@ void network_setup(int number_of_hosts, int number_of_switches){
     std::map<std::string, std::vector<Path>> all_paths;
     std::vector<std::string> pairings = {"H0:S3", "H1:S3", "H2:S4", "H3:S4",
     "S3:S1",
-    // "S3:S2","S4:S1",
+    "S3:S2","S4:S1",
     "S4:S2","S1:S0","S2:S0",
     };
     
@@ -57,7 +57,7 @@ void network_setup(int number_of_hosts, int number_of_switches){
         // Create a Path object and add it to the paths vector
         if (all_paths.contains(lower_node)){
             std::vector<Path> & path_list = all_paths[lower_node];
-            path_list.push_back(Path(lower_node, upper_node));
+            path_list.emplace_back(lower_node, upper_node);
         }else{
             all_paths[lower_node] = {Path(lower_node, upper_node)};
         }
@@ -78,18 +78,36 @@ void network_setup(int number_of_hosts, int number_of_switches){
 
 }
 
+void send(Host& host, int reduce_id, int data){
+    ;
+}
+
+void receive(Host& host, int reduce_id, int data){
+    ;
+}
+
+void send(Switch& toggle, int reduce_id, int data){
+    ;
+}
+
+void receive(Switch& toggle, int reduce_id, int data){
+    ;
+}
+
+
 int main(){
     // Start timing
     auto start_time = std::chrono::high_resolution_clock::now();
 
     std::vector<int> host_ids = {0, 1, 2, 3, 4, 5, 6, 7};
-    
     network_setup(4, 5);
+    
     int num_hosts = 4;
     std::vector<int> allreduce_hosts = {0, 1, 2, 3}; // select hosts for allreduce
+    
     for (int host: allreduce_hosts){
         host_map.at(host).all_reduce_map[0] = 2;
-        host_map.at(host).send(0, host_map.at(host).all_reduce_map[0], host_map, switch_map);
+        // host_map.at(host).send(0, host_map.at(host).all_reduce_map[0],);
     }
     std::cout << "Root Switch Result: " << switch_map[0].all_reduce_map[0] << std::endl;
     // WLOG Root Switch is Switch 0
