@@ -14,6 +14,9 @@ std::vector<std::vector<int>> ongoing_allreduces;
 std::map<int, Host> host_map;
 std::map<int, Switch> switch_map;
 
+std::map<int, std::mutex> switch_mutex_map;
+std::map<int, std::mutex> host_mutex_map;
+
 std::vector<int> select_hosts_for_allreduce(std::set<int> host_ids){
     if (host_ids.size() < 3){ //WLOG all reduces are run in batches of 3
         return std::vector<int>{};
@@ -66,15 +69,21 @@ void network_setup(int number_of_hosts, int number_of_switches){
     }
     
 
-    for (int i=0; i<number_of_hosts; i++){
-        std::string host_rep = "H"+std::to_string(i);
+    for (int host_id=0; host_id<number_of_hosts; host_id++){
+        std::string host_rep = "H"+std::to_string(host_id);
         std::vector<Path> const_arg = all_paths.contains(host_rep)? all_paths[host_rep]:std::vector<Path>{};
-        host_map.emplace(i, Host(i, 2, const_arg));
+        host_map.emplace(host_id, Host(host_id, 2, const_arg));
+        host_mutex_map.emplace(std::piecewise_construct, 
+                           std::forward_as_tuple(host_id), 
+                           std::forward_as_tuple());
     }
-    for (int i=0; i<number_of_switches; i++){
-        std::string switch_rep = "S"+std::to_string(i);
+    for (int switch_id=0; switch_id<number_of_switches; switch_id++){
+        std::string switch_rep = "S"+std::to_string(switch_id);
         std::vector<Path> const_arg = all_paths.contains(switch_rep)? all_paths[switch_rep]:std::vector<Path>{};
-        switch_map.emplace(i, Switch(i, const_arg));
+        switch_map.emplace(switch_id, Switch(switch_id, const_arg));
+        switch_mutex_map.emplace(std::piecewise_construct, 
+                           std::forward_as_tuple(switch_id), 
+                           std::forward_as_tuple());
     }
 
 }
