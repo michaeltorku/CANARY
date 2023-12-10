@@ -5,42 +5,21 @@
 #include <map>
 #include <sstream>
 #include <chrono>
+#include <thread>
+
 #include "host.hpp"
 #include "switch.hpp"
 #include "loadBalance.hpp"
 
 
 std::vector<std::vector<int>> ongoing_allreduces;
+std::vector<std::thread> executions;
 std::map<int, Host> host_map;
 std::map<int, Switch> switch_map;
 
 std::map<int, std::mutex> switch_mutex_map;
 std::map<int, std::mutex> host_mutex_map;
 
-std::vector<int> select_hosts_for_allreduce(std::set<int> host_ids){
-    if (host_ids.size() < 3){ //WLOG all reduces are run in batches of 3
-        return std::vector<int>{};
-    }
-    std::cout << "Selecting hosts for allreduce" << std::endl;
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    
-    std::vector<int> allreduce_hosts;
-    for (int i = 0; i<3; i++){
-        std::uniform_int_distribution<> dis(0, host_ids.size() - 1);
-        auto it = host_ids.begin();
-        std::advance(it, dis(gen));
-        int host1 = *it;
-        host_ids.erase(it);
-    }
-    return allreduce_hosts;
-    
-}
-
-std::vector<int> initiate_allreduce(std::vector<int> allreduce_hosts){
-    std::cout << "Initiating allreduce" << std::endl;
-    return std::vector<int>{1,2,3};
-}
 
 void network_setup(int number_of_hosts, int number_of_switches){
     std::map<std::string, std::vector<Path>> all_paths;
