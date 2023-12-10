@@ -90,8 +90,9 @@ std::vector<Path>& getPaths(Switch & s){
 }
 void send(Host& host, int reduce_id, Packet data){
     host_map_mutex.lock();
-    all_paths_mutex.lock();
     switch_map_mutex.lock();
+    all_paths_mutex.lock();
+    
     std::vector<Path>& host_paths = getPaths(host);
     int p_idx = load_balancer::balance(host_paths);
     Path &selected_path = host_paths[p_idx];
@@ -106,8 +107,8 @@ void send(Host& host, int reduce_id, Packet data){
     //     Host &target = host_map.at(target_node_id);
     //     receive(target, reduce_id, host.descriptor_map[reduce_id]); // send host initial data
     // }
-    switch_map_mutex.unlock();
     all_paths_mutex.unlock();
+    switch_map_mutex.unlock();
     host_map_mutex.unlock();
 }
 
@@ -154,17 +155,20 @@ void forward_data(int reduce_id, int num_hosts) {
             if (toggle.paths.size() == 0){ // ONE
                 continue;
             }
-            int p_idx = load_balancer::balance(toggle.paths); //ONE
+            all_paths_mutex.lock();
+            int p_idx = load_balancer::balance(getPaths(toggle)); //ONE
             Path & selected_path = toggle.paths[p_idx]; // ONE
             int target_node_id = selected_path.upper_node[1] - '0';
             Switch &target = switch_map.at(target_node_id);
+            all_paths_mutex.unlock(); 
             for (auto reduce_id__data_pair : toggle.descriptor_map){
                 int reduce_id = reduce_id__data_pair.first; 
                 Packet data = reduce_id__data_pair.second;
                 target.descriptor_map[reduce_id] += data;
                 std::cout << target.id << " received " << data.data << std::endl;
                 toggle.descriptor_map[reduce_id] = Packet();
-            }            
+            }  
+                     
         }
 
 
