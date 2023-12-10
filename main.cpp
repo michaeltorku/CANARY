@@ -34,12 +34,59 @@ std::atomic<bool> keep_running(true);
 int root_switch = 0;
 
 void network_setup(int number_of_hosts, int number_of_switches){
-    
-    std::vector<std::string> pairings = {"H0:S3", "H1:S3", "H2:S4", "H3:S4",
-    "S3:S1",
-    "S3:S2","S4:S1",
-    "S4:S2","S1:S0","S2:S0",
+    std::vector<std::string> small_sized_tree_congestion_unaware = {
+        "H0:S3", 
+        "H1:S3", 
+        "H2:S4", 
+        "H3:S4",
+        "S3:S1",
+        "S4:S2",
+        "S1:S0",
+        "S2:S0",
     };
+    std::vector<std::string> medium_sized_tree = {
+        "H0:S3", 
+        "H1:S3", 
+        "H2:S4", 
+        "H3:S4",
+        "S3:S1",
+        "S3:S2",
+        "S4:S1",
+        "S4:S2",
+        "S1:S0",
+        "S2:S0",
+    };
+    std::vector<std::string> large_sized_tree = {
+        "S1:S0",
+        "S2:S0",
+        "S3:S0",
+        "S6:S0",
+        "S7:S0",
+        "S2:S1",
+        "S3:S1",
+        "S6:S1",
+        "S7:S1",
+        "S5:S2",
+        "S4:S2",
+        "S4:S3",
+        "S5:S3",
+        "S8:S6",
+        "S9:S6",
+        "S8:S7",
+        "S9:S7",
+        "H1:S4",
+        "H0:S4",
+        "H2:S5",
+        "H3:S5",
+        "H4:S8",
+        "H5:S8",
+        "H6:S9",
+        "H7:S9"
+        
+    };
+
+
+    std::vector<std::string> pairings = large_sized_tree;
     
     for (std::string & pair: pairings){
         std::istringstream iss(pair);
@@ -180,10 +227,14 @@ int main(){
     auto start_time = std::chrono::high_resolution_clock::now();
 
     std::vector<int> host_ids = {0, 1, 2, 3, 4, 5, 6, 7};
-    network_setup(4, 5);
+    // network_setup(4, 5); // medium_sized
+    network_setup(8, 10); // large_sized
     
-    int num_hosts = 4;
-    std::vector<int> allreduce_hosts = {0, 1, 2, 3}; // select hosts for allreduce
+    // int num_hosts = 4; // medium_sized
+    int num_hosts = 8; // large_sized
+
+    // std::vector<int> allreduce_hosts = {0, 1, 2, 3}; // select hosts for allreduce (medium_sized)
+    std::vector<int> allreduce_hosts = {0, 1, 2, 3, 4, 5, 6, 7}; // select hosts for allreduce (large_sized)
 
     int expected = 0;
     std::random_device rd;  // get a random number from hardware
