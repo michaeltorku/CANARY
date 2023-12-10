@@ -2,8 +2,9 @@
 #include <iostream>
 #include "path.hpp"
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include "loadBalance.hpp"
+#include "packet.hpp"
 
 class Host;
 
@@ -15,7 +16,7 @@ public:
     Switch(int id, std::vector<Path>& paths);
     int id;
     std::vector<Path> paths;
-    std::map<int, int> descriptor_map;
+    std::unordered_map<int, Packet> descriptor_map;
     friend void receive(Switch& toggle, int reduce_id, int data); 
     friend void send(Switch& toggle, int reduce_id, int data);
     void addPath(Path path);

@@ -1,8 +1,15 @@
+#pragma once
 #include <iostream>
 
 
 class Packet{
     public:
+    Packet();
+    Packet(int id, int counter, int num_hosts, int data);
+    Packet& operator+=(const Packet& rhs);
+    Packet& operator=(const Packet& rhs);
+    Packet(const Packet& rhs);
+    Packet(Packet& rhs);
     int id; // identifier of the packet
     int counter; // number of reduced packets
     int num_hosts; // number of hosts in all reduce
@@ -16,5 +23,6 @@ class Packet{
 
     //bypass and multicast are initialized to 0
 
-    Packet(int id, int counter, int num_hosts, int data);
+    
+    
 };

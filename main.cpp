@@ -2,7 +2,7 @@
 #include <set>
 #include <random>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <sstream>
 #include <chrono>
 #include <thread>
@@ -16,11 +16,11 @@
 
 std::vector<std::vector<int>> ongoing_allreduces;
 std::vector<std::thread> executions;
-std::map<int, Host> host_map;
-std::map<int, Switch> switch_map;
+std::unordered_map<int, Host> host_map;
+std::unordered_map<int, Switch> switch_map;
 
-std::map<int, std::mutex> switch_mutex_map;
-std::map<int, std::mutex> host_mutex_map;
+std::unordered_map<int, std::mutex> switch_mutex_map;
+std::unordered_map<int, std::mutex> host_mutex_map;
 
 const std::chrono::seconds TIMEOUT(1);
 std::atomic<bool> keep_running(true);
@@ -29,7 +29,7 @@ std::atomic<bool> keep_running(true);
 int root_switch = 0;
 
 void network_setup(int number_of_hosts, int number_of_switches){
-    std::map<std::string, std::vector<Path>> all_paths;
+    std::unordered_map<std::string, std::vector<Path>> all_paths;
     std::vector<std::string> pairings = {"H0:S3", "H1:S3", "H2:S4", "H3:S4",
     "S3:S1",
     "S3:S2","S4:S1",
@@ -74,7 +74,7 @@ void network_setup(int number_of_hosts, int number_of_switches){
 
 }
 
-void send(Host& host, int reduce_id, int data){
+void send(Host& host, int reduce_id, Packet data){
     int p_idx = load_balancer::balance(host.paths);
     Path &selected_path = host.paths[p_idx];
 
@@ -112,8 +112,8 @@ void send(Host& host, int reduce_id, int data){
 //     // }
 // }
 
-void receive(Switch& toggle, int reduce_id, int data){
-    std::cout << toggle.id << " received " << data << std::endl;
+void receive(Switch& toggle, int reduce_id, Packet data){
+    std::cout << toggle.id << " received " << data.data << std::endl;
     toggle.descriptor_map[reduce_id] += data;
     // send(toggle, reduce_id, data);
 }
@@ -133,10 +133,11 @@ void forward_data() {
             int target_node_id = selected_path.upper_node[1] - '0';
             Switch &target = switch_map.at(target_node_id);
             for (auto reduce_id__data_pair : toggle.descriptor_map){
-                int reduce_id = reduce_id__data_pair.first; int data = reduce_id__data_pair.second;
+                int reduce_id = reduce_id__data_pair.first; 
+                Packet data = reduce_id__data_pair.second;
                 target.descriptor_map[reduce_id] += data;
-                std::cout << target.id << " received " << data << std::endl;
-                toggle.descriptor_map[reduce_id] = 0;
+                std::cout << target.id << " received " << data.data << std::endl;
+                toggle.descriptor_map[reduce_id] = Packet();
             }            
         }
 
@@ -166,7 +167,7 @@ int main(){
         expected += num;
         host_map.at(host).descriptor_map[reduce_id] = Packet(reduce_id, 1, allreduce_hosts.size(), num);
         // host_map.at(host).descriptor_map[0] = num;
-        executions.emplace_back([host](){
+        executions.emplace_back([host, reduce_id](){
             send(host_map.at(host), reduce_id, host_map.at(host).descriptor_map[0]);
             });
         // host_map.at(host).send(0, host_map.at(host).descriptor_map[0],);
@@ -185,7 +186,7 @@ int main(){
             th.join();
         }
     }
-    std::cout << "Root Switch Result: " << switch_map[0].descriptor_map[0] << " Expected: " << expected <<std::endl;
+    std::cout << "Root Switch Result: " << switch_map[0].descriptor_map[reduce_id].data << " Expected: " << expected <<std::endl;
 
     // End timing + Print Profiling
     auto end_time = std::chrono::high_resolution_clock::now();
