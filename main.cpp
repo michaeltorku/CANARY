@@ -16,6 +16,10 @@
 
 std::vector<std::vector<int>> ongoing_allreduces;
 std::vector<std::thread> executions;
+
+std::mutex switch_map_mutex;
+std::mutex host_map_mutex;
+
 std::unordered_map<int, Host> host_map;
 std::unordered_map<int, Switch> switch_map;
 
@@ -120,8 +124,10 @@ void receive(Switch& toggle, int reduce_id, Packet data){
 
 
 void forward_data(int reduce_id, int num_hosts) {
-    while (switch_map.at(root_switch).descriptor_map[reduce_id].counter != num_hosts) {
-        // Perform the task
+    bool loop_cond = true;
+    while (loop_cond) {
+        switch_map_mutex.lock();
+        loop_cond = switch_map.at(root_switch).descriptor_map[reduce_id].counter != num_hosts;
         std::cout << "now: " << switch_map.at(root_switch).descriptor_map[reduce_id].counter << std::endl;
         for (auto & s: switch_map){
             std::cout << "switch " << s.second.id << std::endl;
@@ -142,7 +148,8 @@ void forward_data(int reduce_id, int num_hosts) {
             }            
         }
 
-        // Sleep for x seconds
+
+        switch_map_mutex.unlock();
         std::this_thread::sleep_for(TIMEOUT);
     }
 }
