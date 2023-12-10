@@ -16,3 +16,7 @@ This project is developed using C++20 and utilizes features specific to this ver
 ### To Simulate Using Different Tree Topologies:
 - Vary the ``const int TREE_NUM`` variable in `main.cpp`
 - The different network topologies are detailed in the `select_tree_configurations` method also in `main.cpp`
+
+### Notes
+- The main branch focuses on the reduce phase because the analysis and experimentation conducted with regards to this project apply (without loss of generality) to the broadcast phase.
+- The implementation of the broadcast phase can be found in the broadcast branch and includes strategies to simulate packet loss and the root switch waiting for retransmission packets.
