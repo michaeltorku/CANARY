@@ -33,18 +33,10 @@ std::atomic<bool> keep_running(true);
 // WLOG Root Switch is Switch 0
 int root_switch = 0;
 
-void network_setup(int number_of_hosts, int number_of_switches){
-    std::vector<std::string> small_sized_tree_congestion_unaware = {
-        "H0:S3", 
-        "H1:S3", 
-        "H2:S4", 
-        "H3:S4",
-        "S3:S1",
-        "S4:S2",
-        "S1:S0",
-        "S2:S0",
-    };
-    std::vector<std::string> medium_sized_tree = {
+std::vector<std::vector<std::string>> tree_types = {
+
+    // std::vector<std::string> medium_sized_tree = 0
+    {
         "H0:S3", 
         "H1:S3", 
         "H2:S4", 
@@ -55,8 +47,9 @@ void network_setup(int number_of_hosts, int number_of_switches){
         "S4:S2",
         "S1:S0",
         "S2:S0",
-    };
-    std::vector<std::string> large_sized_tree = {
+    },
+    // std::vector<std::string> large_sized_tree = 1
+    {
         "S1:S0",
         "S2:S0",
         "S3:S0",
@@ -83,10 +76,40 @@ void network_setup(int number_of_hosts, int number_of_switches){
         "H6:S9",
         "H7:S9"
         
-    };
+    },
+    // std::vector<std::string> small_sized_tree_congestion_unaware = 2
+    {
+        "H0:S3", 
+        "H1:S3", 
+        "H2:S4", 
+        "H3:S4",
+        "S3:S1",
+        "S4:S2",
+        "S1:S0",
+        "S2:S0",
+    },
+
+    // std::vector<std::string> medium_sized_ring = 3
+    {
+        "S1:S2",
+        "S2:S3",
+        "S3:S4",
+        "S4:S5",
+        "S5:S0",
+        "H0:S0",
+        "H1:S1",
+        "H2:S2",
+        "H3:S3",
+        "H4:S4",
+        "H5:S5"
+    }
+};
+
+void network_setup(int number_of_hosts, int number_of_switches, int tree_num){
+    
 
 
-    std::vector<std::string> pairings = large_sized_tree;
+    std::vector<std::string> pairings = tree_types[tree_num];
     
     for (std::string & pair: pairings){
         std::istringstream iss(pair);
@@ -181,12 +204,12 @@ void forward_data(int reduce_id, int num_hosts, std::string reduce_ip_address) {
         for (auto & s: switch_map){
             std::cout << "switch " << s.second.id << std::endl;
             Switch & toggle = s.second;
-            if (toggle.paths.size() == 0){ // ONE
+            if (toggle.paths.size() == 0){
                 continue;
             }
             all_paths_mutex.lock();
-            int p_idx = load_balancer::balance(getPaths(toggle), reduce_ip_address); //ONE
-            Path & selected_path = toggle.paths[p_idx]; // ONE
+            int p_idx = load_balancer::balance(getPaths(toggle), reduce_ip_address);
+            Path & selected_path = toggle.paths[p_idx]; 
             int target_node_id = selected_path.upper_node[1] - '0';
             Switch &target = switch_map.at(target_node_id);
             all_paths_mutex.unlock(); 
@@ -221,25 +244,47 @@ std::string generatePrivateIP() {
     return ip.str();
 }
 
+void select_tree_configurations(int & num_hosts, int & num_switches, std::vector<int>& allreduce_hosts, int config_num=0){
+    switch (config_num)
+    {
+    case 0: //medium_sized tree
+        num_hosts = 4;
+        num_switches = 5;
+        allreduce_hosts = {0, 1, 2, 3}; 
+        break;
+    case 1: // large_sized tree
+        num_hosts = 8;
+        num_switches = 10;
+        allreduce_hosts = {0, 1, 2, 3, 4, 5, 6, 7};
+        break;
+    case 2: // small_sized tree
+        num_hosts = 4;
+        num_switches = 5;
+        allreduce_hosts = {0, 1, 2, 3}; 
+    case 3: // medium_sized ring
+        num_hosts = 6;
+        num_switches = 6;
+        allreduce_hosts = {0, 1, 2, 3, 4, 5}; 
+    default:
+        break;
+    }
+}
 
 int main(){
     // Start timing
     auto start_time = std::chrono::high_resolution_clock::now();
 
-    std::vector<int> host_ids = {0, 1, 2, 3, 4, 5, 6, 7};
-    // network_setup(4, 5); // medium_sized
-    network_setup(8, 10); // large_sized
-    
-    // int num_hosts = 4; // medium_sized
-    int num_hosts = 8; // large_sized
+    std::vector<int> allreduce_hosts; int num_hosts; int num_switches;
+    const int TREE_NUM = 3;
+    select_tree_configurations(num_hosts, num_switches, allreduce_hosts, TREE_NUM);
+    network_setup(num_hosts, num_switches, TREE_NUM); 
 
-    // std::vector<int> allreduce_hosts = {0, 1, 2, 3}; // select hosts for allreduce (medium_sized)
-    std::vector<int> allreduce_hosts = {0, 1, 2, 3, 4, 5, 6, 7}; // select hosts for allreduce (large_sized)
 
     int expected = 0;
     std::random_device rd;  // get a random number from hardware
     std::mt19937 gen(rd()); // Seed the generator
     std::uniform_int_distribution<> distr(100, 50000);
+
     int reduce_id = distr(gen);
     std::string reduce_ip_address = generatePrivateIP();
 
@@ -247,11 +292,10 @@ int main(){
         auto num = distr(gen);
         expected += num;
         host_map.at(host).descriptor_map[reduce_id] = Packet(reduce_id, 1, allreduce_hosts.size(), num);
-        // host_map.at(host).descriptor_map[0] = num;
         data_threads.emplace_back([host, reduce_id, reduce_ip_address](){
             send(host_map.at(host), reduce_id, host_map.at(host).descriptor_map[0], reduce_ip_address);
             });
-        // host_map.at(host).send(0, host_map.at(host).descriptor_map[0],);
+        
     }
 
     std::thread timeoutThread(forward_data, reduce_id, num_hosts, reduce_ip_address);
