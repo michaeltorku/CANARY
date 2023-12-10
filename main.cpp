@@ -15,7 +15,7 @@
 
 std::unordered_map<std::string, std::vector<Path>> all_paths;
 std::vector<std::vector<int>> ongoing_allreduces;
-std::vector<std::thread> executions;
+std::vector<std::thread> data_threads;
 
 std::mutex switch_map_mutex;
 std::mutex host_map_mutex;
@@ -95,7 +95,19 @@ void send(Host& host, int reduce_id, Packet data){
     
     std::vector<Path>& host_paths = getPaths(host);
     int p_idx = load_balancer::balance(host_paths);
+
     Path &selected_path = host_paths[p_idx];
+    std::this_thread::sleep_for(std::chrono::seconds(selected_path.utilization));
+    selected_path.utilization = std::min(selected_path.utilization+1, 7);
+    std::thread(
+        [p_idx, &host](){
+            std::this_thread::sleep_for(std::chrono::seconds(8));
+            all_paths_mutex.lock();
+            getPaths(host)[p_idx].utilization -= 1;
+            all_paths_mutex.unlock();
+
+        }
+    ).detach();
 
     int target_node_id = selected_path.upper_node[1] - '0';
     if (selected_path.upper_node[0] == 'S'){
@@ -198,7 +210,7 @@ int main(){
         expected += num;
         host_map.at(host).descriptor_map[reduce_id] = Packet(reduce_id, 1, allreduce_hosts.size(), num);
         // host_map.at(host).descriptor_map[0] = num;
-        executions.emplace_back([host, reduce_id](){
+        data_threads.emplace_back([host, reduce_id](){
             send(host_map.at(host), reduce_id, host_map.at(host).descriptor_map[0]);
             });
         // host_map.at(host).send(0, host_map.at(host).descriptor_map[0],);
@@ -211,17 +223,20 @@ int main(){
     if (timeoutThread.joinable()){
         timeoutThread.join();
     }
-    for (auto & th : executions){
+
+    std::cout << "Root Switch Result: " << switch_map[root_switch].descriptor_map[reduce_id].data << " Expected: " << expected <<std::endl;
+    for (auto & th : data_threads){
         if (th.joinable()){
             th.join();
         }
     }
-    std::cout << "Root Switch Result: " << switch_map[root_switch].descriptor_map[reduce_id].data << " Expected: " << expected <<std::endl;
+    
 
     // End timing + Print Profiling
     auto end_time = std::chrono::high_resolution_clock::now();
     auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
     std::cout << "Elapsed time: " << elapsed_time.count() << " milliseconds" << std::endl;
+
     return 0;    
 }
 
