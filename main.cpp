@@ -161,7 +161,9 @@ int main(){
         auto num = distr(gen);
         expected += num;
         host_map.at(host).descriptor_map[0] = num;
-        send(host_map.at(host), 0, host_map.at(host).descriptor_map[0]);
+        executions.emplace_back([host](){
+            send(host_map.at(host), 0, host_map.at(host).descriptor_map[0]);
+            });
         // host_map.at(host).send(0, host_map.at(host).descriptor_map[0],);
     }
 
@@ -173,12 +175,17 @@ int main(){
     if (timeoutThread.joinable()){
         timeoutThread.join();
     }
+    for (auto & th : executions){
+        if (th.joinable()){
+            th.join();
+        }
+    }
     std::cout << "Root Switch Result: " << switch_map[0].descriptor_map[0] << " Expected: " << expected <<std::endl;
     // WLOG Root Switch is Switch 0
 
     // End timing + Print Profiling
     auto end_time = std::chrono::high_resolution_clock::now();
-    auto elapsed_time = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
-    std::cout << "Elapsed time: " << elapsed_time.count() << " microseconds" << std::endl;
+    auto elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
+    std::cout << "Elapsed time: " << elapsed_time.count() << " seconds" << std::endl;
     return 0;    
 }
