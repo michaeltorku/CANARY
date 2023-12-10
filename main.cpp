@@ -119,9 +119,10 @@ void receive(Switch& toggle, int reduce_id, Packet data){
 }
 
 
-void forward_data() {
-    while (keep_running) {
+void forward_data(int reduce_id, int num_hosts) {
+    while (switch_map.at(root_switch).descriptor_map[reduce_id].counter != num_hosts) {
         // Perform the task
+        std::cout << "now: " << switch_map.at(root_switch).descriptor_map[reduce_id].counter << std::endl;
         for (auto & s: switch_map){
             std::cout << "switch " << s.second.id << std::endl;
             Switch & toggle = s.second;
@@ -173,9 +174,9 @@ int main(){
         // host_map.at(host).send(0, host_map.at(host).descriptor_map[0],);
     }
 
-    std::thread timeoutThread(forward_data);
+    std::thread timeoutThread(forward_data, reduce_id, num_hosts);
 
-    std::this_thread::sleep_for(std::chrono::seconds(5));
+    // std::this_thread::sleep_for(std::chrono::seconds(5));
 
     keep_running = false;
     if (timeoutThread.joinable()){
@@ -190,8 +191,8 @@ int main(){
 
     // End timing + Print Profiling
     auto end_time = std::chrono::high_resolution_clock::now();
-    auto elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
-    std::cout << "Elapsed time: " << elapsed_time.count() << " seconds" << std::endl;
+    auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+    std::cout << "Elapsed time: " << elapsed_time.count() << " milliseconds" << std::endl;
     return 0;    
 }
 
