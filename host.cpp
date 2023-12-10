@@ -12,7 +12,7 @@ Host::Host(int id, int data, std::vector<Path>& paths){
 }
 
 // void Host::receive(int reduce_id, int data, std::map<int, Host> &host_map, std::map<int, Switch> &switch_map){
-//     all_reduce_map[reduce_id] += data;
+//     descriptor_map[reduce_id] += data;
 //     send(reduce_id, data, host_map, switch_map);
 // }
 
@@ -31,10 +31,10 @@ void Host::addPath(Path &path) {
 //     int target_node_id = selected_path.upper_node[1] - '0';
 //     if (selected_path.upper_node[0] == 'S'){
 //         Switch &target = switch_map.at(target_node_id);
-//         target.receive(reduce_id, all_reduce_map[reduce_id], host_map, switch_map);
+//         target.receive(reduce_id, descriptor_map[reduce_id], host_map, switch_map);
 //     }else{
 //         Host &target = host_map.at(target_node_id);
-//         target.receive(reduce_id, all_reduce_map[reduce_id], host_map, switch_map);
+//         target.receive(reduce_id, descriptor_map[reduce_id], host_map, switch_map);
 //     }
 //     // selected_path.utilization -=  tmp;
 

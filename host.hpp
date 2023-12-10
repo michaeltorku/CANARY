@@ -11,7 +11,7 @@ class Host {
 public:
     Host(int id, int data, std::vector<Path>& paths);
     friend void receive(Host& host, int reduce_id, int data);
-    std::map<int, int> all_reduce_map;
+    std::map<int, int> descriptor_map;
     friend void send(Host& host, int reduce_id, int data);
     std::vector<Path> paths;
     void addPath(Path & path);

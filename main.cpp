@@ -95,15 +95,15 @@ void send(Host& host, int reduce_id, int data){
     int target_node_id = selected_path.upper_node[1] - '0';
     if (selected_path.upper_node[0] == 'S'){
         Switch &target = switch_map.at(target_node_id);
-        receive(target, reduce_id, host.all_reduce_map[reduce_id]); // send host initial data
+        receive(target, reduce_id, host.descriptor_map[reduce_id]); // send host initial data
     }else{
         Host &target = host_map.at(target_node_id);
-        receive(target, reduce_id, host.all_reduce_map[reduce_id]); // send host initial data
+        receive(target, reduce_id, host.descriptor_map[reduce_id]); // send host initial data
     }
 }
 
 void receive(Host& host, int reduce_id, int data){
-    host.all_reduce_map[reduce_id] += data;
+    host.descriptor_map[reduce_id] += data;
     send(host, reduce_id, data);
 }
 
@@ -125,7 +125,7 @@ void send(Switch& toggle, int reduce_id, int data){
 
 void receive(Switch& toggle, int reduce_id, int data){
     std::cout << toggle.id << " received " << data << std::endl;
-    toggle.all_reduce_map[reduce_id] += data;
+    toggle.descriptor_map[reduce_id] += data;
     send(toggle, reduce_id, data);
 }
 
@@ -149,11 +149,11 @@ int main(){
     for (int host: allreduce_hosts){
         auto num = distr(gen);
         expected += num;
-        host_map.at(host).all_reduce_map[0] = num;
-        send(host_map.at(host), 0, host_map.at(host).all_reduce_map[0]);
-        // host_map.at(host).send(0, host_map.at(host).all_reduce_map[0],);
+        host_map.at(host).descriptor_map[0] = num;
+        send(host_map.at(host), 0, host_map.at(host).descriptor_map[0]);
+        // host_map.at(host).send(0, host_map.at(host).descriptor_map[0],);
     }
-    std::cout << "Root Switch Result: " << switch_map[0].all_reduce_map[0] << " Expected: " << expected <<std::endl;
+    std::cout << "Root Switch Result: " << switch_map[0].descriptor_map[0] << " Expected: " << expected <<std::endl;
     // WLOG Root Switch is Switch 0
 
     // End timing + Print Profiling

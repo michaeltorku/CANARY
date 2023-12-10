@@ -13,7 +13,7 @@ Switch::Switch(){
 }
 
 // void Switch::receive(int reduce_id, int data, std::map<int, Host> &host_map, std::map<int, Switch> &switch_map){
-//     all_reduce_map[reduce_id] += data;
+//     descriptor_map[reduce_id] += data;
 //     this->send(reduce_id, data, host_map, switch_map);
 // }
 
