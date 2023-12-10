@@ -6,6 +6,7 @@
 #include <sstream>
 #include <chrono>
 #include <thread>
+#include <atomic>
 
 #include "host.hpp"
 #include "switch.hpp"
@@ -20,6 +21,8 @@ std::map<int, Switch> switch_map;
 std::map<int, std::mutex> switch_mutex_map;
 std::map<int, std::mutex> host_mutex_map;
 
+const std::chrono::seconds TIMEOUT(1);
+std::atomic<bool> keep_running(true);
 
 void network_setup(int number_of_hosts, int number_of_switches){
     std::map<std::string, std::vector<Path>> all_paths;
@@ -74,7 +77,8 @@ void send(Host& host, int reduce_id, int data){
     int target_node_id = selected_path.upper_node[1] - '0';
     if (selected_path.upper_node[0] == 'S'){
         Switch &target = switch_map.at(target_node_id);
-        receive(target, reduce_id, host.descriptor_map[reduce_id]); // send host initial data
+        target.descriptor_map[reduce_id] += host.descriptor_map[reduce_id];
+        // receive(target, reduce_id, host.descriptor_map[reduce_id]); // send host initial data
     }
     // else{
     //     Host &target = host_map.at(target_node_id);
@@ -87,29 +91,55 @@ void send(Host& host, int reduce_id, int data){
 //     send(host, reduce_id, data);
 // }
 
-void send(Switch& toggle, int reduce_id, int data){
-    if (toggle.paths.size() == 0){
-        return;
-    }
-    int p_idx = load_balancer::balance(toggle.paths);
-    Path & selected_path = toggle.paths[p_idx];
-    int target_node_id = selected_path.upper_node[1] - '0';
-    if (selected_path.upper_node[0] == 'S'){
-        Switch &target = switch_map.at(target_node_id);
-        receive(target, reduce_id, data); // switch only sends data received
-    }
-    // else{
-    //     Host &target = host_map.at(target_node_id);
-    //     receive(target, reduce_id, data); // switch only sends data received (should agg and send data on timeout)
-    // }
-}
+// void send(Switch& toggle, int reduce_id, int data){
+//     if (toggle.paths.size() == 0){
+//         return;
+//     }
+//     int p_idx = load_balancer::balance(toggle.paths);
+//     Path & selected_path = toggle.paths[p_idx];
+//     int target_node_id = selected_path.upper_node[1] - '0';
+//     if (selected_path.upper_node[0] == 'S'){
+//         Switch &target = switch_map.at(target_node_id);
+//         receive(target, reduce_id, data); // switch only sends data received
+//     }
+//     // else{
+//     //     Host &target = host_map.at(target_node_id);
+//     //     receive(target, reduce_id, data); // switch only sends data received (should agg and send data on timeout)
+//     // }
+// }
 
 void receive(Switch& toggle, int reduce_id, int data){
     std::cout << toggle.id << " received " << data << std::endl;
     toggle.descriptor_map[reduce_id] += data;
-    send(toggle, reduce_id, data);
+    // send(toggle, reduce_id, data);
 }
 
+
+void forward_data() {
+    while (keep_running) {
+        // Perform the task
+        for (auto & s: switch_map){
+            std::cout << "switch " << s.second.id << std::endl;
+            Switch & toggle = s.second;
+            if (toggle.paths.size() == 0){
+                continue;
+            }
+            int p_idx = load_balancer::balance(toggle.paths);
+            Path & selected_path = toggle.paths[p_idx];
+            int target_node_id = selected_path.upper_node[1] - '0';
+            Switch &target = switch_map.at(target_node_id);
+            for (auto reduce_id__data_pair : toggle.descriptor_map){
+                int reduce_id = reduce_id__data_pair.first; int data = reduce_id__data_pair.second;
+                target.descriptor_map[reduce_id] += data;
+                std::cout << target.id << " received " << data << std::endl;
+                toggle.descriptor_map[reduce_id] = 0;
+            }            
+        }
+
+        // Sleep for x seconds
+        std::this_thread::sleep_for(TIMEOUT);
+    }
+}
 
 int main(){
     // Start timing
@@ -133,6 +163,15 @@ int main(){
         host_map.at(host).descriptor_map[0] = num;
         send(host_map.at(host), 0, host_map.at(host).descriptor_map[0]);
         // host_map.at(host).send(0, host_map.at(host).descriptor_map[0],);
+    }
+
+    std::thread timeoutThread(forward_data);
+
+    std::this_thread::sleep_for(std::chrono::seconds(20));
+
+    keep_running = false;
+    if (timeoutThread.joinable()){
+        timeoutThread.join();
     }
     std::cout << "Root Switch Result: " << switch_map[0].descriptor_map[0] << " Expected: " << expected <<std::endl;
     // WLOG Root Switch is Switch 0
