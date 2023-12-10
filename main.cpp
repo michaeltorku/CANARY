@@ -102,7 +102,35 @@ std::vector<std::vector<std::string>> tree_types = {
         "H3:S3",
         "H4:S4",
         "H5:S5"
-    }
+    },
+
+    // std::vector<std::string> spine_leaf_topology = 4
+    {
+        "S1:S0",
+        "S2:S0",
+        "S3:S0",
+        "S4:S0",
+        "H0:S5",
+        "H1:S6",
+        "H2:S7",
+        "H3:S8", 
+        "S5:S1",
+        "S5:S2", 
+        "S5:S3", 
+        "S5:S4", 
+        "S6:S1", 
+        "S6:S2", 
+        "S6:S3", 
+        "S6:S4", 
+        "S7:S1", 
+        "S7:S2", 
+        "S7:S3", 
+        "S7:S4", 
+        "S8:S1", 
+        "S8:S2", 
+        "S8:S3", 
+        "S8:S4",
+    },
 };
 
 void network_setup(int number_of_hosts, int number_of_switches, int tree_num){
@@ -265,6 +293,10 @@ void select_tree_configurations(int & num_hosts, int & num_switches, std::vector
         num_hosts = 6;
         num_switches = 6;
         allreduce_hosts = {0, 1, 2, 3, 4, 5}; 
+    case 4: // spine-leaf topology
+        num_hosts = 4;
+        num_switches = 9;
+        allreduce_hosts = {0, 1, 2, 3}; 
     default:
         break;
     }
@@ -275,7 +307,7 @@ int main(){
     auto start_time = std::chrono::high_resolution_clock::now();
 
     std::vector<int> allreduce_hosts; int num_hosts; int num_switches;
-    const int TREE_NUM = 3;
+    const int TREE_NUM = 4;
     select_tree_configurations(num_hosts, num_switches, allreduce_hosts, TREE_NUM);
     network_setup(num_hosts, num_switches, TREE_NUM); 
 
@@ -300,8 +332,6 @@ int main(){
 
     std::thread timeoutThread(forward_data, reduce_id, num_hosts, reduce_ip_address);
 
-    // std::this_thread::sleep_for(std::chrono::seconds(5));
-
     if (timeoutThread.joinable()){
         timeoutThread.join();
     }
@@ -321,5 +351,3 @@ int main(){
 
     return 0;    
 }
-
-// ADD DIFFERENT STRUCTURES
