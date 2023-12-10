@@ -75,16 +75,17 @@ void send(Host& host, int reduce_id, int data){
     if (selected_path.upper_node[0] == 'S'){
         Switch &target = switch_map.at(target_node_id);
         receive(target, reduce_id, host.descriptor_map[reduce_id]); // send host initial data
-    }else{
-        Host &target = host_map.at(target_node_id);
-        receive(target, reduce_id, host.descriptor_map[reduce_id]); // send host initial data
     }
+    // else{
+    //     Host &target = host_map.at(target_node_id);
+    //     receive(target, reduce_id, host.descriptor_map[reduce_id]); // send host initial data
+    // }
 }
 
-void receive(Host& host, int reduce_id, int data){
-    host.descriptor_map[reduce_id] += data;
-    send(host, reduce_id, data);
-}
+// void receive(Host& host, int reduce_id, int data){
+//     host.descriptor_map[reduce_id] += data;
+//     send(host, reduce_id, data);
+// }
 
 void send(Switch& toggle, int reduce_id, int data){
     if (toggle.paths.size() == 0){
@@ -96,10 +97,11 @@ void send(Switch& toggle, int reduce_id, int data){
     if (selected_path.upper_node[0] == 'S'){
         Switch &target = switch_map.at(target_node_id);
         receive(target, reduce_id, data); // switch only sends data received
-    }else{
-        Host &target = host_map.at(target_node_id);
-        receive(target, reduce_id, data); // switch only sends data received (should agg and send data on timeout)
     }
+    // else{
+    //     Host &target = host_map.at(target_node_id);
+    //     receive(target, reduce_id, data); // switch only sends data received (should agg and send data on timeout)
+    // }
 }
 
 void receive(Switch& toggle, int reduce_id, int data){
