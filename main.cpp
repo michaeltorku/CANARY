@@ -88,13 +88,13 @@ std::vector<Path>& getPaths(Switch & s){
     return all_paths[switch_rep];
     
 }
-void send(Host& host, int reduce_id, Packet data){
+void send(Host& host, int reduce_id, Packet data, std::string reduce_ip_address){
     host_map_mutex.lock();
     switch_map_mutex.lock();
     all_paths_mutex.lock();
     
     std::vector<Path>& host_paths = getPaths(host);
-    int p_idx = load_balancer::balance(host_paths);
+    int p_idx = load_balancer::balance(host_paths, reduce_ip_address);
 
     Path &selected_path = host_paths[p_idx];
     std::this_thread::sleep_for(std::chrono::seconds(selected_path.utilization));
@@ -125,7 +125,7 @@ void send(Host& host, int reduce_id, Packet data){
 }
 
 
-void forward_data(int reduce_id, int num_hosts) {
+void forward_data(int reduce_id, int num_hosts, std::string reduce_ip_address) {
     bool loop_cond = true;
     while (loop_cond) {
         switch_map_mutex.lock();
@@ -138,7 +138,7 @@ void forward_data(int reduce_id, int num_hosts) {
                 continue;
             }
             all_paths_mutex.lock();
-            int p_idx = load_balancer::balance(getPaths(toggle)); //ONE
+            int p_idx = load_balancer::balance(getPaths(toggle), reduce_ip_address); //ONE
             Path & selected_path = toggle.paths[p_idx]; // ONE
             int target_node_id = selected_path.upper_node[1] - '0';
             Switch &target = switch_map.at(target_node_id);
@@ -159,6 +159,22 @@ void forward_data(int reduce_id, int num_hosts) {
     }
 }
 
+
+std::string generatePrivateIP() {
+    int firstOctet = rand() % 3;
+    std::ostringstream ip;
+
+    if (firstOctet == 0) { // 10.x.x.x
+        ip << "10." << (rand() % 256) << "." << (rand() % 256) << "." << (rand() % 256);
+    } else if (firstOctet == 1) { // 172.16.x.x to 172.31.x.x
+        ip << "172." << (16 + rand() % 16) << "." << (rand() % 256) << "." << (rand() % 256);
+    } else { // 192.168.x.x
+        ip << "192.168." << (rand() % 256) << "." << (rand() % 256);
+    }
+    return ip.str();
+}
+
+
 int main(){
     // Start timing
     auto start_time = std::chrono::high_resolution_clock::now();
@@ -174,19 +190,20 @@ int main(){
     std::mt19937 gen(rd()); // Seed the generator
     std::uniform_int_distribution<> distr(100, 50000);
     int reduce_id = distr(gen);
+    std::string reduce_ip_address = generatePrivateIP();
 
     for (int host: allreduce_hosts){
         auto num = distr(gen);
         expected += num;
         host_map.at(host).descriptor_map[reduce_id] = Packet(reduce_id, 1, allreduce_hosts.size(), num);
         // host_map.at(host).descriptor_map[0] = num;
-        data_threads.emplace_back([host, reduce_id](){
-            send(host_map.at(host), reduce_id, host_map.at(host).descriptor_map[0]);
+        data_threads.emplace_back([host, reduce_id, reduce_ip_address](){
+            send(host_map.at(host), reduce_id, host_map.at(host).descriptor_map[0], reduce_ip_address);
             });
         // host_map.at(host).send(0, host_map.at(host).descriptor_map[0],);
     }
 
-    std::thread timeoutThread(forward_data, reduce_id, num_hosts);
+    std::thread timeoutThread(forward_data, reduce_id, num_hosts, reduce_ip_address);
 
     // std::this_thread::sleep_for(std::chrono::seconds(5));
 
@@ -210,5 +227,4 @@ int main(){
     return 0;    
 }
 
-// ADD LOAD-BALANCING
 // ADD DIFFERENT STRUCTURES

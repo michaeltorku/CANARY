@@ -11,9 +11,9 @@ class Switch;
 class Host {
 public:
     Host(int id, int data, std::vector<Path>& paths);
-    friend void receive(Host& host, int reduce_id, Packet data);
+    // friend void receive(Host& host, int reduce_id, Packet data);
     std::unordered_map<int, Packet> descriptor_map; //reduce_id to packet
-    friend void send(Host& host, int reduce_id, Packet data);
+    friend void send(Host& host, int reduce_id, Packet data, std::string reduce_ip_address);
     std::vector<Path> paths;
     void addPath(Path & path);
     friend std::vector<Path>& getPaths(Host & h);

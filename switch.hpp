@@ -17,8 +17,8 @@ public:
     int id;
     std::vector<Path> paths;
     std::unordered_map<int, Packet> descriptor_map;
-    friend void receive(Switch& toggle, int reduce_id, Packet data); 
-    friend void send(Switch& toggle, int reduce_id, Packet data);
+    // friend void receive(Switch& toggle, int reduce_id, Packet data); 
+    // friend void send(Switch& toggle, int reduce_id, Packet data);
     friend std::vector<Path>& getPaths(Switch & s);
     void addPath(Path path);
     
