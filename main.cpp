@@ -11,6 +11,7 @@
 #include "host.hpp"
 #include "switch.hpp"
 #include "loadBalance.hpp"
+#include "packet.hpp"
 
 
 std::vector<std::vector<int>> ongoing_allreduces;
@@ -23,6 +24,9 @@ std::map<int, std::mutex> host_mutex_map;
 
 const std::chrono::seconds TIMEOUT(1);
 std::atomic<bool> keep_running(true);
+
+// WLOG Root Switch is Switch 0
+int root_switch = 0;
 
 void network_setup(int number_of_hosts, int number_of_switches){
     std::map<std::string, std::vector<Path>> all_paths;
@@ -155,21 +159,22 @@ int main(){
     std::random_device rd;  // get a random number from hardware
     std::mt19937 gen(rd()); // Seed the generator
     std::uniform_int_distribution<> distr(100, 50000);
-
+    int reduce_id = distr(gen);
 
     for (int host: allreduce_hosts){
         auto num = distr(gen);
         expected += num;
-        host_map.at(host).descriptor_map[0] = num;
+        host_map.at(host).descriptor_map[reduce_id] = Packet(reduce_id, 1, allreduce_hosts.size(), num);
+        // host_map.at(host).descriptor_map[0] = num;
         executions.emplace_back([host](){
-            send(host_map.at(host), 0, host_map.at(host).descriptor_map[0]);
+            send(host_map.at(host), reduce_id, host_map.at(host).descriptor_map[0]);
             });
         // host_map.at(host).send(0, host_map.at(host).descriptor_map[0],);
     }
 
     std::thread timeoutThread(forward_data);
 
-    std::this_thread::sleep_for(std::chrono::seconds(20));
+    std::this_thread::sleep_for(std::chrono::seconds(5));
 
     keep_running = false;
     if (timeoutThread.joinable()){
@@ -181,7 +186,6 @@ int main(){
         }
     }
     std::cout << "Root Switch Result: " << switch_map[0].descriptor_map[0] << " Expected: " << expected <<std::endl;
-    // WLOG Root Switch is Switch 0
 
     // End timing + Print Profiling
     auto end_time = std::chrono::high_resolution_clock::now();
@@ -189,3 +193,8 @@ int main(){
     std::cout << "Elapsed time: " << elapsed_time.count() << " seconds" << std::endl;
     return 0;    
 }
+
+// MAKE PACKET MORE ROBUST
+// PROTECT RESOURCES
+// ADD LOAD-BALANCING
+// ADD DIFFERENT STRUCTURES

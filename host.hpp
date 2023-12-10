@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include "path.hpp"
+#include "packet.hpp"
 #include <map>
 
 #include <vector>
@@ -11,7 +12,7 @@ class Host {
 public:
     Host(int id, int data, std::vector<Path>& paths);
     friend void receive(Host& host, int reduce_id, int data);
-    std::map<int, int> descriptor_map;
+    std::map<int, Packet> descriptor_map; //reduce_id to packet
     friend void send(Host& host, int reduce_id, int data);
     std::vector<Path> paths;
     void addPath(Path & path);
