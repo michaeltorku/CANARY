@@ -19,4 +19,4 @@ This project is developed using C++20 and utilizes features specific to this ver
 
 ### Notes
 - The main branch focuses on the reduce phase - the analysis and experimentation conducted with regards to this project apply (without loss of generality) to the broadcast phase.
-- The implementation of the broadcast phase can be found in the broadcast branch and includes strategies to simulate packet loss and the root switch waiting for retransmission packets.
+- The implementation of the broadcast phase can be found in the broadcast branch and includes approaches to simulate packet loss and the root switch waiting for retransmission signals from allreduce hosts.
