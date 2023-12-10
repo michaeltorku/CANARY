@@ -222,6 +222,7 @@ std::vector<Path>& getPaths(Host & h){
     return forward_paths[host_rep];
 
 }
+
 std::vector<Path>& getPaths(Switch & s){
     std::string switch_rep = "S"+std::to_string(s.id);
     return forward_paths[switch_rep];
@@ -307,9 +308,11 @@ void forward_data(int reduce_id, int num_hosts, std::string reduce_ip_address) {
         std::this_thread::sleep_for(TIMEOUT);
     }
 }
+
 void broadcast_data(int reduce_id, int data, Switch & s){
     backward_paths_mutex.lock();
     switch_map_mutex.lock();
+    
     std::vector<Path> & rev_paths = backward_paths["S"+std::to_string(s.id)];    
     for (int p_idx : s.descriptor_map[reduce_id].second){
         std::string target_str = rev_paths[p_idx].upper_node;
@@ -321,7 +324,10 @@ void broadcast_data(int reduce_id, int data, Switch & s){
             
         }else{
             int target_switch_id = target_str[1] - '0';
-            broadcast_threads.emplace_back(broadcast_data, reduce_id, data, std::ref(switch_map.at(target_switch_id)));
+            // broadcast_threads.emplace_back(broadcast_data, reduce_id, data, std::ref(switch_map.at(target_switch_id)));
+            broadcast_threads.emplace_back(broadcast_data, reduce_id, data, std::ref(switch_map.at(target_switch_id))).detach();
+            // detach is used to simulate packet loss
+
         }
     switch_map_mutex.unlock();    
     backward_paths_mutex.unlock();
@@ -416,6 +422,9 @@ int main(){
     auto end_broadcast_time = std::chrono::high_resolution_clock::now();
     auto final_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_broadcast_time - start_time);
     auto elapsed_b_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_broadcast_time - end_reduce_time);
+
+    std::this_thread::sleep_for(std::chrono::seconds(3)); // Used to simulate waiting for retransmission signal from hosts
+
     std::cout << "Elapsed (Broadcast) time: " << elapsed_b_time.count() << " milliseconds" << std::endl;
     std::cout << "Final time: " << final_time.count() << " milliseconds" << std::endl;
 
