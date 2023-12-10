@@ -124,36 +124,6 @@ void send(Host& host, int reduce_id, Packet data){
     host_map_mutex.unlock();
 }
 
-// void receive(Host& host, int reduce_id, int data){
-//     host.descriptor_map[reduce_id] += data;
-//     send(host, reduce_id, data);
-// }
-
-// void send(Switch& toggle, int reduce_id, int data){
-//     if (toggle.paths.size() == 0){
-//         return;
-//     }
-//     int p_idx = load_balancer::balance(toggle.paths);
-//     Path & selected_path = toggle.paths[p_idx];
-//     int target_node_id = selected_path.upper_node[1] - '0';
-//     if (selected_path.upper_node[0] == 'S'){
-//         Switch &target = switch_map.at(target_node_id);
-//         receive(target, reduce_id, data); // switch only sends data received
-//     }
-//     // else{
-//     //     Host &target = host_map.at(target_node_id);
-//     //     receive(target, reduce_id, data); // switch only sends data received (should agg and send data on timeout)
-//     // }
-// }
-
-void receive(Switch& toggle, int reduce_id, Packet data){
-    switch_map_mutex.lock();
-    std::cout << toggle.id << " received " << data.data << std::endl;
-    toggle.descriptor_map[reduce_id] += data;
-    switch_map_mutex.unlock();
-    // send(toggle, reduce_id, data);
-}
-
 
 void forward_data(int reduce_id, int num_hosts) {
     bool loop_cond = true;
@@ -240,6 +210,5 @@ int main(){
     return 0;    
 }
 
-// ADD PATH DELAY
 // ADD LOAD-BALANCING
 // ADD DIFFERENT STRUCTURES
