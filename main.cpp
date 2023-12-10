@@ -13,12 +13,13 @@
 #include "loadBalance.hpp"
 #include "packet.hpp"
 
-
+std::unordered_map<std::string, std::vector<Path>> all_paths;
 std::vector<std::vector<int>> ongoing_allreduces;
 std::vector<std::thread> executions;
 
 std::mutex switch_map_mutex;
 std::mutex host_map_mutex;
+std::mutex all_paths_mutex;
 
 std::unordered_map<int, Host> host_map;
 std::unordered_map<int, Switch> switch_map;
@@ -33,7 +34,7 @@ std::atomic<bool> keep_running(true);
 int root_switch = 0;
 
 void network_setup(int number_of_hosts, int number_of_switches){
-    std::unordered_map<std::string, std::vector<Path>> all_paths;
+    
     std::vector<std::string> pairings = {"H0:S3", "H1:S3", "H2:S4", "H3:S4",
     "S3:S1",
     "S3:S2","S4:S1",
@@ -58,7 +59,7 @@ void network_setup(int number_of_hosts, int number_of_switches){
         
     }
     
-
+    // Switches and Hosts have paths not to be used (all_paths is used)
     for (int host_id=0; host_id<number_of_hosts; host_id++){
         std::string host_rep = "H"+std::to_string(host_id);
         std::vector<Path> const_arg = all_paths.contains(host_rep)? all_paths[host_rep]:std::vector<Path>{};
@@ -77,10 +78,23 @@ void network_setup(int number_of_hosts, int number_of_switches){
     }
 
 }
+std::vector<Path>& getPaths(Host & h){
+    std::string host_rep = "H"+std::to_string(h.id);
+    return all_paths[host_rep];
 
+}
+std::vector<Path>& getPaths(Switch & s){
+    std::string switch_rep = "S"+std::to_string(s.id);
+    return all_paths[switch_rep];
+    
+}
 void send(Host& host, int reduce_id, Packet data){
-    int p_idx = load_balancer::balance(host.paths);
-    Path &selected_path = host.paths[p_idx];
+    host_map_mutex.lock();
+    all_paths_mutex.lock();
+    switch_map_mutex.lock();
+    std::vector<Path>& host_paths = getPaths(host);
+    int p_idx = load_balancer::balance(host_paths);
+    Path &selected_path = host_paths[p_idx];
 
     int target_node_id = selected_path.upper_node[1] - '0';
     if (selected_path.upper_node[0] == 'S'){
@@ -92,6 +106,9 @@ void send(Host& host, int reduce_id, Packet data){
     //     Host &target = host_map.at(target_node_id);
     //     receive(target, reduce_id, host.descriptor_map[reduce_id]); // send host initial data
     // }
+    switch_map_mutex.unlock();
+    all_paths_mutex.unlock();
+    host_map_mutex.unlock();
 }
 
 // void receive(Host& host, int reduce_id, int data){
@@ -117,8 +134,10 @@ void send(Host& host, int reduce_id, Packet data){
 // }
 
 void receive(Switch& toggle, int reduce_id, Packet data){
+    switch_map_mutex.lock();
     std::cout << toggle.id << " received " << data.data << std::endl;
     toggle.descriptor_map[reduce_id] += data;
+    switch_map_mutex.unlock();
     // send(toggle, reduce_id, data);
 }
 
@@ -132,11 +151,11 @@ void forward_data(int reduce_id, int num_hosts) {
         for (auto & s: switch_map){
             std::cout << "switch " << s.second.id << std::endl;
             Switch & toggle = s.second;
-            if (toggle.paths.size() == 0){
+            if (toggle.paths.size() == 0){ // ONE
                 continue;
             }
-            int p_idx = load_balancer::balance(toggle.paths);
-            Path & selected_path = toggle.paths[p_idx];
+            int p_idx = load_balancer::balance(toggle.paths); //ONE
+            Path & selected_path = toggle.paths[p_idx]; // ONE
             int target_node_id = selected_path.upper_node[1] - '0';
             Switch &target = switch_map.at(target_node_id);
             for (auto reduce_id__data_pair : toggle.descriptor_map){
@@ -185,7 +204,6 @@ int main(){
 
     // std::this_thread::sleep_for(std::chrono::seconds(5));
 
-    keep_running = false;
     if (timeoutThread.joinable()){
         timeoutThread.join();
     }
@@ -194,7 +212,7 @@ int main(){
             th.join();
         }
     }
-    std::cout << "Root Switch Result: " << switch_map[0].descriptor_map[reduce_id].data << " Expected: " << expected <<std::endl;
+    std::cout << "Root Switch Result: " << switch_map[root_switch].descriptor_map[reduce_id].data << " Expected: " << expected <<std::endl;
 
     // End timing + Print Profiling
     auto end_time = std::chrono::high_resolution_clock::now();
@@ -203,7 +221,6 @@ int main(){
     return 0;    
 }
 
-// MAKE PACKET MORE ROBUST
-// PROTECT RESOURCES
+// ADD PATH DELAY
 // ADD LOAD-BALANCING
 // ADD DIFFERENT STRUCTURES
