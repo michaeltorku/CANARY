@@ -17,6 +17,7 @@ public:
     std::vector<Path> paths;
     void addPath(Path & path);
     friend std::vector<Path>& getPaths(Host & h);
+    int result = 0;
 private:
     int id;
     int data;

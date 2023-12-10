@@ -7,5 +7,5 @@
 class load_balancer{
     public:
     
-    static int balance(std::vector<Path> paths, std::string clientIP, int algorithm=0);
+    static int balance(std::vector<Path> paths, std::string clientIP, int algorithm=1);
 };
